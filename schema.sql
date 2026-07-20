@@ -323,6 +323,35 @@ CREATE TABLE smtp_profiles (
     updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- smtp_logs tracks per-campaign sending stats per SMTP profile
+DROP TABLE IF EXISTS smtp_logs CASCADE;
+CREATE TABLE smtp_logs (
+    id               BIGSERIAL PRIMARY KEY,
+    smtp_profile_id  INTEGER NOT NULL REFERENCES smtp_profiles(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    campaign_id      INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    sent             INT NOT NULL DEFAULT 0,
+    failed           INT NOT NULL DEFAULT 0,
+    start_time       TIMESTAMP WITH TIME ZONE,
+    end_time         TIMESTAMP WITH TIME ZONE,
+    created_at       TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+DROP INDEX IF EXISTS idx_smtp_logs_profile; CREATE INDEX idx_smtp_logs_profile ON smtp_logs(smtp_profile_id);
+DROP INDEX IF EXISTS idx_smtp_logs_campaign; CREATE INDEX idx_smtp_logs_campaign ON smtp_logs(campaign_id);
+DROP INDEX IF EXISTS idx_smtp_logs_created; CREATE INDEX idx_smtp_logs_created ON smtp_logs(created_at);
+
+-- smtp_activity_log tracks individual SMTP events
+DROP TABLE IF EXISTS smtp_activity_log CASCADE;
+CREATE TABLE smtp_activity_log (
+    id               BIGSERIAL PRIMARY KEY,
+    smtp_profile_id  INTEGER NOT NULL REFERENCES smtp_profiles(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    event_type       TEXT NOT NULL DEFAULT '',
+    message          TEXT NOT NULL DEFAULT '',
+    created_at       TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+DROP INDEX IF EXISTS idx_smtp_activity_profile; CREATE INDEX idx_smtp_activity_profile ON smtp_activity_log(smtp_profile_id);
+DROP INDEX IF EXISTS idx_smtp_activity_type; CREATE INDEX idx_smtp_activity_type ON smtp_activity_log(event_type);
+DROP INDEX IF EXISTS idx_smtp_activity_created; CREATE INDEX idx_smtp_activity_created ON smtp_activity_log(created_at);
+
 -- bounces
 DROP TABLE IF EXISTS bounces CASCADE;
 CREATE TABLE bounces (

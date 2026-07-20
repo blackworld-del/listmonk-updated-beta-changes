@@ -99,6 +99,17 @@ type Queries struct {
 	DeleteSMTPProfile   *sqlx.Stmt `query:"delete-smtp-profile"`
 	GetSMTPProfileByName *sqlx.Stmt `query:"get-smtp-profile-by-name"`
 
+	GetSMTPProfileStats          *sqlx.Stmt `query:"get-smtp-profile-stats"`
+	GetSMTPProfileDailyStats     *sqlx.Stmt `query:"get-smtp-profile-daily-stats"`
+	GetSMTPProfileRecentCampaigns *sqlx.Stmt `query:"get-smtp-profile-recent-campaigns"`
+	GetSMTPProfileActivity       *sqlx.Stmt `query:"get-smtp-profile-activity"`
+	InsertSMTPLog               *sqlx.Stmt `query:"insert-smtp-log"`
+	InsertSMTPActivity          *sqlx.Stmt `query:"insert-smtp-activity"`
+	GetSMTPOverview             *sqlx.Stmt `query:"get-smtp-overview"`
+	GetSMTPDashboardStats       *sqlx.Stmt `query:"get-smtp-dashboard-stats"`
+	ExportSMTPStats             *sqlx.Stmt `query:"export-smtp-stats"`
+	QuerySMTPProfilesStats      string     `query:"query-smtp-profiles-stats"`
+
 	InsertMedia *sqlx.Stmt `query:"insert-media"`
 	GetMedia    *sqlx.Stmt `query:"get-media"`
 	QueryMedia  *sqlx.Stmt `query:"query-media"`
