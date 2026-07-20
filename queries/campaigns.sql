@@ -24,8 +24,8 @@ WITH tpl AS (
 ),
 camp AS (
     INSERT INTO campaigns (uuid, type, name, subject, from_email, body, altbody,
-        content_type, send_at, headers, attribs, tags, messenger, template_id, to_send,
-        max_subscriber_id, archive, archive_slug, archive_template_id, archive_meta, body_source)
+        content_type, send_at, headers, attribs, tags, messenger, template_id, smtp_profile_id,
+        to_send, max_subscriber_id, archive, archive_slug, archive_template_id, archive_meta, body_source)
         SELECT $1, $2, $3, $4, $5,
             -- body
             COALESCE(NULLIF($6, ''), (SELECT body FROM tpl), ''),
@@ -33,6 +33,7 @@ camp AS (
             $8::content_type,
             $9, $10, $11, $12, $13,
             (SELECT id FROM tpl),
+            NULLIF($22, 0)::INT,
             0,
             0,
             $16, $17,
@@ -62,6 +63,7 @@ SELECT id FROM camp;
 -- with every resultant row.
 SELECT  c.*,
         COUNT(*) OVER () AS total,
+        sp.name AS smtp_profile_name,
         (
             SELECT COALESCE(ARRAY_TO_JSON(ARRAY_AGG(l)), '[]') FROM (
                 SELECT COALESCE(campaign_lists.list_id, 0) AS id,
@@ -70,6 +72,7 @@ SELECT  c.*,
         ) l
     ) AS lists
 FROM campaigns c
+LEFT JOIN smtp_profiles sp ON sp.id = c.smtp_profile_id
 WHERE ($1 = 0 OR id = $1)
     AND (CARDINALITY($2::campaign_status[]) = 0 OR status = ANY($2))
     AND (CARDINALITY($3::VARCHAR(100)[]) = 0 OR $3 <@ tags)
@@ -84,8 +87,10 @@ ORDER BY %order% OFFSET $7 LIMIT (CASE WHEN $8 < 1 THEN NULL ELSE $8 END);
 
 -- name: get-campaign
 SELECT campaigns.*,
+    sp.name AS smtp_profile_name,
     COALESCE(templates.body, (SELECT body FROM templates WHERE is_default = true LIMIT 1), '') AS template_body
     FROM campaigns
+    LEFT JOIN smtp_profiles sp ON sp.id = campaigns.smtp_profile_id
     LEFT JOIN templates ON (
         CASE WHEN $4 = 'default' THEN templates.id = campaigns.template_id
         ELSE templates.id = campaigns.archive_template_id END
@@ -98,8 +103,10 @@ SELECT campaigns.*,
 
 -- name: get-archived-campaigns
 SELECT COUNT(*) OVER () AS total, campaigns.*,
+    sp.name AS smtp_profile_name,
     COALESCE(templates.body, (SELECT body FROM templates WHERE is_default = true LIMIT 1), '') AS template_body
     FROM campaigns
+    LEFT JOIN smtp_profiles sp ON sp.id = campaigns.smtp_profile_id
     LEFT JOIN templates ON (
         CASE WHEN $3 = 'default' THEN templates.id = campaigns.template_id
         ELSE templates.id = campaigns.archive_template_id END
@@ -150,7 +157,7 @@ LEFT JOIN bounces AS b ON (b.campaign_id = id)
 ORDER BY ARRAY_POSITION($1, id);
 
 -- name: get-campaign-for-preview
-SELECT campaigns.*, COALESCE(templates.body, '') AS template_body,
+SELECT campaigns.*, sp.name AS smtp_profile_name, COALESCE(templates.body, '') AS template_body,
 (
 	SELECT COALESCE(ARRAY_TO_JSON(ARRAY_AGG(l)), '[]') FROM (
 		SELECT COALESCE(campaign_lists.list_id, 0) AS id,
@@ -159,6 +166,7 @@ SELECT campaigns.*, COALESCE(templates.body, '') AS template_body,
 	) l
 ) AS lists
 FROM campaigns
+LEFT JOIN smtp_profiles sp ON sp.id = campaigns.smtp_profile_id
 LEFT JOIN templates ON (templates.id = (CASE WHEN $2=0 THEN campaigns.template_id ELSE $2 END))
 WHERE campaigns.id = $1;
 
@@ -180,8 +188,9 @@ SELECT EXISTS (
 -- a campaign. This is used to fetch and slice subscribers for the campaign in next-campaign-subscribers.
 WITH camps AS (
     -- Get all running campaigns and their template bodies (if the template's deleted, the default template body instead)
-    SELECT campaigns.*, COALESCE(templates.body, (SELECT body FROM templates WHERE is_default = true LIMIT 1), '') AS template_body
+    SELECT campaigns.*, sp.name AS smtp_profile_name, COALESCE(templates.body, (SELECT body FROM templates WHERE is_default = true LIMIT 1), '') AS template_body
     FROM campaigns
+    LEFT JOIN smtp_profiles sp ON sp.id = campaigns.smtp_profile_id
     LEFT JOIN templates ON (templates.id = campaigns.template_id)
     WHERE (status='running' OR (status='scheduled' AND NOW() >= campaigns.send_at))
     AND NOT(campaigns.id = ANY($1::INT[]))
@@ -407,6 +416,7 @@ WITH camp AS (
         messenger=$12,
         -- template_id shouldn't be saved for visual campaigns.
         template_id=(CASE WHEN $7::content_type = 'visual' THEN NULL ELSE $13::INT END),
+        smtp_profile_id=NULLIF($21, 0)::INT,
         archive=$15,
         archive_slug=$16,
         archive_template_id=(CASE WHEN $7::content_type = 'visual' THEN NULL ELSE $17::INT END),

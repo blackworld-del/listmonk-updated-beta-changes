@@ -102,6 +102,12 @@ const routes = [
     component: () => import('../views/UserProfile.vue'),
   },
   {
+    path: '/settings/smtp-profiles',
+    name: 'smtpProfiles',
+    meta: { title: 'settings.smtp.name', group: 'settings' },
+    component: () => import('../views/SmtpProfiles.vue'),
+  },
+  {
     path: '/settings',
     name: 'settings',
     meta: { title: 'globals.terms.settings', group: 'settings' },

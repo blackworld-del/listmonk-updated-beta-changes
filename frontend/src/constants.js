@@ -18,6 +18,7 @@ export const models = Object.freeze({
   userRoles: 'userRoles',
   listRoles: 'listRoles',
   settings: 'settings',
+  smtpProfiles: 'smtpProfiles',
   logs: 'logs',
   maintenance: 'maintenance',
 });

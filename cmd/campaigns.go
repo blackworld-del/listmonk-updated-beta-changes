@@ -15,6 +15,7 @@ import (
 
 	"github.com/knadh/listmonk/internal/auth"
 	"github.com/knadh/listmonk/internal/notifs"
+	"github.com/knadh/listmonk/internal/manager"
 	"github.com/knadh/listmonk/models"
 	"github.com/labstack/echo/v4"
 	"github.com/lib/pq"
@@ -273,10 +274,6 @@ func (a *App) CreateCampaign(c echo.Context) error {
 		o.Type = models.CampaignTypeRegular
 	}
 
-	if o.Messenger == "" {
-		o.Messenger = "email"
-	}
-
 	// Validate.
 	if c, err := a.validateCampaignFields(o); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -286,6 +283,16 @@ func (a *App) CreateCampaign(c echo.Context) error {
 
 	if o.ArchiveTemplateID.Valid && o.ArchiveTemplateID.Int != 0 {
 		o.ArchiveTemplateID = o.TemplateID
+	}
+
+	// If smtp_profile_id is set, auto-set the messenger to the profile messenger.
+	if o.SMTPProfileID.Valid && o.SMTPProfileID.Int > 0 {
+		o.Messenger = fmt.Sprintf("profile-%d", o.SMTPProfileID.Int)
+	}
+
+	// If smtp_profile_id is 0, set to null (use default).
+	if o.SMTPProfileID.Int == 0 {
+		o.SMTPProfileID.Valid = false
 	}
 
 	out, err := a.core.CreateCampaign(o.Campaign, o.ListIDs, o.MediaIDs)
@@ -338,6 +345,16 @@ func (a *App) UpdateCampaign(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	} else {
 		o = c
+	}
+
+	// If smtp_profile_id is set, auto-set the messenger to the profile messenger.
+	if o.SMTPProfileID.Valid && o.SMTPProfileID.Int > 0 {
+		o.Messenger = fmt.Sprintf("profile-%d", o.SMTPProfileID.Int)
+	}
+
+	// If smtp_profile_id is 0, set to null (use default).
+	if o.SMTPProfileID.Int == 0 {
+		o.SMTPProfileID.Valid = false
 	}
 
 	out, err := a.core.UpdateCampaign(id, o.Campaign, o.ListIDs, o.MediaIDs)
@@ -582,6 +599,10 @@ func (a *App) TestCampaign(c echo.Context) error {
 	camp.Body = req.Body
 	camp.AltBody = req.AltBody
 	camp.Messenger = req.Messenger
+	// If smtp_profile_id is set, auto-set the messenger to the profile messenger.
+	if req.SMTPProfileID.Valid && req.SMTPProfileID.Int > 0 {
+		camp.Messenger = fmt.Sprintf("profile-%d", req.SMTPProfileID.Int)
+	}
 	camp.ContentType = req.ContentType
 	camp.Headers = req.Headers
 	camp.TemplateID = req.TemplateID
@@ -720,8 +741,8 @@ func (a *App) validateCampaignFields(c campReq) (campReq, error) {
 	}
 
 	if !a.manager.HasMessenger(c.Messenger) {
-		// If it's a specific SMTP, but it's no longer available (removed/disabled), fall back to general email messenger.
-		if strings.HasPrefix(c.Messenger, "email-") {
+		// If it's a specific SMTP or profile, but it's no longer available (removed/disabled), fall back to general email messenger.
+		if strings.HasPrefix(c.Messenger, "email-") || strings.HasPrefix(c.Messenger, "profile-") {
 			c.Messenger = "email"
 		} else {
 			return c, errors.New(a.i18n.Ts("campaigns.fieldInvalidMessenger", "name", c.Messenger))

@@ -711,5 +711,12 @@
     "lists.archived": "Archived",
     "lists.archivedHelp": "Archiving hides the lists from lists page, campaigns, and public forms. It can be unarchived anytime. It is useful for hiding old and rarely used lists.",
     "maintenance.database.title": "Database",
-    "maintenance.database.vacuumHelp": "PostgreSQL VACUUM ANALYZE reclaims storage used by deleted rows and significantly speeds up database performance on large databases. IMPORTANT: For large databases, this is a slow, blocking operation. Schedule to run this during off-peak hours."
+    "maintenance.database.vacuumHelp": "PostgreSQL VACUUM ANALYZE reclaims storage used by deleted rows and significantly speeds up database performance on large databases. IMPORTANT: For large databases, this is a slow, blocking operation. Schedule to run this during off-peak hours.",
+    "menu.smtpProfiles": "SMTP Profiles",
+    "settings.mailserver.profileName": "Profile name",
+    "settings.mailserver.encryption": "Encryption",
+    "settings.mailserver.none": "None",
+    "settings.mailserver.fromName": "From name",
+    "settings.smtp.inUse": "In use",
+    "settings.smtp.defaultProfile": "Default profile"
 }

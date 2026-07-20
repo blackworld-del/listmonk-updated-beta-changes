@@ -181,6 +181,11 @@
         </div>
       </b-table-column>
 
+      <b-table-column v-slot="props" field="smtpProfileName" :label="$t('settings.smtp.name')" width="11%">
+        <span v-if="props.row.smtpProfileName" class="smtp-profile-name">{{ props.row.smtpProfileName }}</span>
+        <span v-else class="has-text-grey-light">-</span>
+      </b-table-column>
+
       <b-table-column v-slot="props" cell-class="actions" width="15%" align="right">
         <div>
           <!-- start / pause / resume / scheduled -->

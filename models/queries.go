@@ -92,6 +92,13 @@ type Queries struct {
 	DeleteCampaign           *sqlx.Stmt `query:"delete-campaign"`
 	DeleteCampaigns          *sqlx.Stmt `query:"delete-campaigns"`
 
+	QuerySMTPProfiles   *sqlx.Stmt `query:"query-smtp-profiles"`
+	GetSMTPProfile      *sqlx.Stmt `query:"get-smtp-profile"`
+	CreateSMTPProfile   *sqlx.Stmt `query:"create-smtp-profile"`
+	UpdateSMTPProfile   *sqlx.Stmt `query:"update-smtp-profile"`
+	DeleteSMTPProfile   *sqlx.Stmt `query:"delete-smtp-profile"`
+	GetSMTPProfileByName *sqlx.Stmt `query:"get-smtp-profile-by-name"`
+
 	InsertMedia *sqlx.Stmt `query:"insert-media"`
 	GetMedia    *sqlx.Stmt `query:"get-media"`
 	QueryMedia  *sqlx.Stmt `query:"query-media"`

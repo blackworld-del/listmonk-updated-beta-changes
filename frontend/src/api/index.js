@@ -380,6 +380,21 @@ export const deleteMedia = (id) => http.delete(
   { loading: models.media },
 );
 
+// SMTP Profiles.
+export const getSMTPProfiles = async (params) => http.get('/api/smtp-profiles', { params, camelCase: false });
+
+export const getSMTPProfile = async (id) => http.get(`/api/smtp-profiles/${id}`, { camelCase: false });
+
+export const createSMTPProfile = async (data) => http.post('/api/smtp-profiles', data, { camelCase: false });
+
+export const updateSMTPProfile = async (id, data) => http.put(`/api/smtp-profiles/${id}`, data, { camelCase: false });
+
+export const deleteSMTPProfile = async (id) => http.delete(`/api/smtp-profiles/${id}`, { camelCase: false });
+
+export const duplicateSMTPProfile = async (id) => http.post(`/api/smtp-profiles/${id}/duplicate`, {}, { camelCase: false });
+
+export const testSMTPProfile = async (data) => http.post('/api/smtp-profiles/test', data, { camelCase: false });
+
 // Templates.
 export const createTemplate = async (data) => http.post(
   '/api/templates',

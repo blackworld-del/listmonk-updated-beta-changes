@@ -83,20 +83,16 @@
 
                 <div class="columns">
                   <div class="column is-6">
-                    <b-field :label="$tc('globals.terms.messenger')" label-position="on-border">
-                      <b-select :placeholder="$tc('globals.terms.messenger')" v-model="form.messenger" name="messenger"
-                        :disabled="!canEdit" required expanded>
-                        <template v-if="emailMessengers.length > 1">
-                          <optgroup label="email">
-                            <option v-for="m in emailMessengers" :value="m" :key="m">
-                              {{ m }}
-                            </option>
-                          </optgroup>
-                        </template>
-                        <template v-else>
-                          <option value="email">email</option>
-                        </template>
-                        <option v-for="m in otherMessengers" :value="m" :key="m">{{ m }}</option>
+                    <b-field label="SMTP Profile" label-position="on-border">
+                      <b-select v-model="form.smtpProfileId" name="smtp_profile_id" expanded
+                        :disabled="!canEdit || smtpProfiles.length === 0">
+                        <option :value="null" key="default">
+                          {{ $t('settings.smtp.defaultProfile') }}
+                        </option>
+                        <option v-for="p in smtpProfiles" :value="p.id" :key="p.id"
+                          :disabled="!p.enabled">
+                          {{ p.name }}
+                        </option>
                       </b-select>
                     </b-field>
                   </div>
@@ -351,6 +347,7 @@ export default Vue.extend({
         visual: this.$t('campaigns.visual'),
       }),
 
+      smtpProfiles: [],
       isNew: false,
       isEditing: false,
       isHeadersVisible: false,
@@ -373,6 +370,7 @@ export default Vue.extend({
         headersStr: '[]',
         headers: [],
         attribsStr: '{}',
+        smtpProfileId: null,
         messenger: 'email',
         lists: [],
         tags: [],
@@ -517,6 +515,7 @@ export default Vue.extend({
         this.form = {
           ...this.form,
           ...data,
+          smtpProfileId: data.smtpProfileId || null,
           headersStr: JSON.stringify(data.headers, null, 4),
           archiveMetaStr: data.archiveMeta ? JSON.stringify(data.archiveMeta, null, 4) : '{}',
           attribsStr: data.attribs ? JSON.stringify(data.attribs, null, 4) : '{}',
@@ -548,6 +547,7 @@ export default Vue.extend({
         lists: this.form.lists.map((l) => l.id),
         from_email: this.form.fromEmail,
         messenger: this.form.messenger,
+        smtp_profile_id: this.form.smtpProfileId || null,
         type: 'regular',
         headers: this.form.headers,
         tags: this.form.tags,
@@ -574,6 +574,7 @@ export default Vue.extend({
         from_email: this.form.fromEmail,
         content_type: this.form.content.contentType,
         messenger: this.form.messenger,
+        smtp_profile_id: this.form.smtpProfileId || null,
         type: 'regular',
         tags: this.form.tags,
         send_at: this.form.sendLater ? this.form.sendAtDate : null,
@@ -596,6 +597,7 @@ export default Vue.extend({
         lists: this.form.lists.map((l) => l.id),
         from_email: this.form.fromEmail,
         messenger: this.form.messenger,
+        smtp_profile_id: this.form.smtpProfileId || null,
         type: 'regular',
         tags: this.form.tags,
         send_at: this.form.sendLater ? this.form.sendAtDate : null,
@@ -792,6 +794,13 @@ export default Vue.extend({
 
       this.isEditing = true;
     }
+
+    // Get SMTP profiles list.
+    this.$api.getSMTPProfiles({ all: true }).then((data) => {
+      if (data.length > 0) {
+        this.smtpProfiles = data;
+      }
+    });
 
     // Get templates list.
     this.$api.getTemplates().then((data) => {

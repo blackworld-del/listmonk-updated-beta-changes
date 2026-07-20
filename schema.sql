@@ -116,6 +116,9 @@ CREATE TABLE campaigns (
     messenger        TEXT NOT NULL,
     template_id      INTEGER REFERENCES templates(id) ON DELETE SET NULL,
 
+    -- The SMTP profile used for sending this campaign.
+    smtp_profile_id  INTEGER REFERENCES smtp_profiles(id) ON DELETE SET NULL,
+
     -- Progress and stats.
     to_send            INT NOT NULL DEFAULT 0,
     sent               INT NOT NULL DEFAULT 0,
@@ -299,6 +302,26 @@ INSERT INTO settings (key, value) VALUES
     ('appearance.public.custom_css', '""'),
     ('appearance.public.custom_js', '""'),
     ('maintenance.db', '{"vacuum": false, "vacuum_cron_interval": "0 2 * * *"}');
+
+-- smtp_profiles
+DROP TABLE IF EXISTS smtp_profiles CASCADE;
+CREATE TABLE smtp_profiles (
+    id              SERIAL PRIMARY KEY,
+    uuid uuid       NOT NULL UNIQUE,
+    name            TEXT NOT NULL UNIQUE,
+    host            TEXT NOT NULL DEFAULT '',
+    port            INT NOT NULL DEFAULT 587,
+    username        TEXT NOT NULL DEFAULT '',
+    password        TEXT NOT NULL DEFAULT '',
+    encryption      TEXT NOT NULL DEFAULT 'starttls',
+    from_email      TEXT NOT NULL DEFAULT '',
+    from_name       TEXT NOT NULL DEFAULT '',
+    reply_to        TEXT NOT NULL DEFAULT '',
+    enabled         BOOLEAN NOT NULL DEFAULT true,
+
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- bounces
 DROP TABLE IF EXISTS bounces CASCADE;

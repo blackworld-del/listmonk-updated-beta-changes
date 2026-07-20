@@ -55,6 +55,7 @@ type Campaign struct {
 	Attribs           JSON            `db:"attribs" json:"attribs"`
 	TemplateID        null.Int        `db:"template_id" json:"template_id"`
 	Messenger         string          `db:"messenger" json:"messenger"`
+	SMTPProfileID     null.Int        `db:"smtp_profile_id" json:"smtp_profile_id"`
 	Archive           bool            `db:"archive" json:"archive"`
 	ArchiveSlug       null.String     `db:"archive_slug" json:"archive_slug"`
 	ArchiveTemplateID null.Int        `db:"archive_template_id" json:"archive_template_id"`
@@ -76,6 +77,9 @@ type Campaign struct {
 
 	// Fetched bodies of the attachments.
 	Attachments []Attachment `json:"-" db:"-"`
+
+	// SMTPProfileName is joined from smtp_profiles for display.
+	SMTPProfileName null.String `json:"smtp_profile_name" db:"smtp_profile_name"`
 
 	// Pseudofield for getting the total number of subscribers
 	// in searches and queries.

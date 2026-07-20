@@ -212,6 +212,9 @@ func main() {
 		// Initialize all messengers, SMTP and postback.
 		msgrs = append(initSMTPMessengers(), initPostbackMessengers(ko)...)
 
+		// Load SMTP profiles from the database as additional messengers.
+		msgrs = append(msgrs, initSMTPProfileMessengers(db)...)
+
 		// Campaign manager.
 		mgr = initCampaignManager(msgrs, queries, urlCfg, core, media, i18n, ko)
 

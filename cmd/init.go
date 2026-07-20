@@ -714,6 +714,78 @@ func initSMTPMessengers() []manager.Messenger {
 	return out
 }
 
+// initSMTPProfileMessengers loads SMTP profiles from the database and registers them
+// as individual e-mail messengers.
+func initSMTPProfileMessengers(db *sqlx.DB) []manager.Messenger {
+	var out []manager.Messenger
+
+	// Check if the smtp_profiles table exists.
+	var tableExists bool
+	if err := db.Get(&tableExists, `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'smtp_profiles')`); err != nil || !tableExists {
+		return out
+	}
+
+	// Fetch all enabled SMTP profiles from the DB.
+	rows, err := db.Query(`SELECT id, name, host, port, username, password, encryption, from_email FROM smtp_profiles WHERE enabled = true`)
+	if err != nil {
+		lo.Printf("error loading SMTP profiles: %v", err)
+		return out
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			id         int
+			name       string
+			host       string
+			port       int
+			username   string
+			password   string
+			encryption string
+			fromEmail  string
+		)
+
+		if err := rows.Scan(&id, &name, &host, &port, &username, &password, &encryption, &fromEmail); err != nil {
+			lo.Printf("error scanning SMTP profile: %v", err)
+			continue
+		}
+
+		// Map encryption to TLS type.
+		tlsType := "STARTTLS"
+		switch encryption {
+		case "ssl_tls":
+			tlsType = "TLS"
+		case "none":
+			tlsType = "none"
+		default:
+			tlsType = "STARTTLS"
+		}
+
+		srv := email.Server{
+			Username:     username,
+			Password:     password,
+			AuthProtocol: "login",
+			TLSType:      tlsType,
+		}
+
+		srv.Opt.Host = host
+		srv.Opt.Port = port
+
+		// Register the messenger with a "profile-<id>" name that campaigns can reference.
+		msgrName := fmt.Sprintf("profile-%d", id)
+		msgr, err := email.New(msgrName, srv)
+		if err != nil {
+			lo.Printf("error initializing SMTP profile messenger '%s': %v", name, err)
+			continue
+		}
+
+		out = append(out, msgr)
+		lo.Printf("initialized SMTP profile messenger: %s (%s)", name, msgrName)
+	}
+
+	return out
+}
+
 // initPostbackMessengers initializes and returns all the enabled
 // HTTP postback messenger backends.
 func initPostbackMessengers(ko *koanf.Koanf) []manager.Messenger {
