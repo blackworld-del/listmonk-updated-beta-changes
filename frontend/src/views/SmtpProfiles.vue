@@ -44,19 +44,19 @@
       <b-table-column v-slot="props" cell-class="actions" align="right" :label="$t('globals.fields.actions')">
         <div>
           <b-tooltip :label="$t('globals.buttons.edit')" type="is-dark" position="is-bottom">
-            <a href="#" @click.prevent="showEditForm(props.row)" class="mr-2" :disabled="!$can('settings:manage')">
+            <a href="#" @click.prevent="showEditForm(props.row)" class="mr-2" :disabled="!$can('settings:manage')" :aria-label="$t('globals.buttons.edit')">
               <b-icon icon="pencil-outline" />
             </a>
           </b-tooltip>
 
           <b-tooltip :label="$t('globals.buttons.duplicate')" type="is-dark" position="is-bottom">
-            <a href="#" @click.prevent="duplicateProfile(props.row)" class="mr-2" :disabled="!$can('settings:manage')">
+            <a href="#" @click.prevent="duplicateProfile(props.row)" class="mr-2" :disabled="!$can('settings:manage')" :aria-label="$t('globals.buttons.duplicate')">
               <b-icon icon="content-copy" />
             </a>
           </b-tooltip>
 
           <b-tooltip :label="$t('settings.smtp.testConnection')" type="is-dark" position="is-bottom">
-            <a href="#" @click.prevent="testProfile(props.row)" class="mr-2">
+            <a href="#" @click.prevent="testProfile(props.row)" class="mr-2" :aria-label="$t('settings.smtp.testConnection')">
               <b-icon icon="email-outline" />
             </a>
           </b-tooltip>
@@ -64,7 +64,7 @@
           <b-tooltip v-if="props.row.campaignCount === 0" :label="$t('globals.buttons.delete')" type="is-dark"
             position="is-bottom">
             <a href="#" @click.prevent="$utils.confirm(null, () => deleteProfile(props.row))"
-              :disabled="!$can('settings:manage')">
+              :disabled="!$can('settings:manage')" :aria-label="$t('globals.buttons.delete')">
               <b-icon icon="trash-can-outline" />
             </a>
           </b-tooltip>
@@ -83,8 +83,7 @@
         <div class="modal-card">
           <header class="modal-card-head">
             <p class="modal-card-title">{{ isEditing ? $t('globals.buttons.edit') : $t('globals.buttons.new') }}
-              {{ $t('settings.smtp.name') }}</p>
-          </header>
+              {{ $t('settings.smtp.name') }}</p>          </header>
 
           <section class="modal-card-body">
             <b-field :label="$t('settings.mailserver.profileName')" label-position="on-border" required>
@@ -155,11 +154,19 @@
                 {{ $t('globals.buttons.enabled') }}
               </b-switch>
             </b-field>
+
+            <div v-if="formTestResult" class="mt-2" :class="{ 'has-text-danger': formTestResult.status === 'error', 'has-text-success': formTestResult.status === 'success' }">
+              <b-icon :icon="formTestResult.status === 'success' ? 'check-circle' : 'alert-circle'" />
+              {{ formTestResult.message }}
+            </div>
           </section>
 
           <footer class="modal-card-foot">
             <b-button @click="isModalActive = false">
               {{ $t('globals.buttons.cancel') }}
+            </b-button>
+            <b-button type="is-info" :loading="testing" @click="testCurrentForm" :disabled="!form.host">
+              {{ $t('settings.smtp.testConnection') }}
             </b-button>
             <b-button native-type="submit" type="is-primary" :loading="saving">
               {{ $t('globals.buttons.save') }}
@@ -199,7 +206,14 @@
 
 <script>
 import Vue from 'vue';
-import { http, getSMTPProfiles, createSMTPProfile, updateSMTPProfile, deleteSMTPProfile, duplicateSMTPProfile, testSMTPProfile } from '../api';
+import {
+  getSMTPProfiles,
+  createSMTPProfile,
+  updateSMTPProfile,
+  deleteSMTPProfile,
+  duplicateSMTPProfile,
+  testSMTPProfile,
+} from '../api';
 
 export default Vue.extend({
   data() {
@@ -217,6 +231,7 @@ export default Vue.extend({
       testEmail: '',
       testing: false,
       testResult: null,
+      formTestResult: null,
     };
   },
 
@@ -250,6 +265,7 @@ export default Vue.extend({
       this.isEditing = false;
       this.editId = null;
       this.form = this.getEmptyForm();
+      this.formTestResult = null;
       this.isModalActive = true;
     },
 
@@ -268,6 +284,7 @@ export default Vue.extend({
         replyTo: profile.replyTo,
         enabled: profile.enabled,
       };
+      this.formTestResult = null;
       this.isModalActive = true;
     },
 
@@ -323,6 +340,30 @@ export default Vue.extend({
         this.testResult = data;
       } catch (e) {
         this.testResult = { status: 'error', message: e.toString() };
+      } finally {
+        this.testing = false;
+      }
+    },
+
+    async testCurrentForm() {
+      this.testing = true;
+      this.formTestResult = null;
+      try {
+        const data = await testSMTPProfile({
+          name: this.form.name,
+          host: this.form.host,
+          port: this.form.port,
+          username: this.form.username,
+          password: this.form.password,
+          encryption: this.form.encryption,
+          from_email: this.form.fromEmail,
+          from_name: this.form.fromName,
+          reply_to: this.form.replyTo,
+          email: '',
+        });
+        this.formTestResult = data;
+      } catch (e) {
+        this.formTestResult = { status: 'error', message: e.toString() };
       } finally {
         this.testing = false;
       }
