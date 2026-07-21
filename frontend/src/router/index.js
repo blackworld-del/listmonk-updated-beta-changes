@@ -108,18 +108,6 @@ const routes = [
     component: () => import('../views/SmtpProfiles.vue'),
   },
   {
-    path: '/settings/smtp-profiles/:id',
-    name: 'smtpProfileDetail',
-    meta: { title: 'settings.smtp.name', group: 'settings' },
-    component: () => import('../views/SmtpProfileDetail.vue'),
-  },
-  {
-    path: '/settings/smtp-overview',
-    name: 'smtpOverview',
-    meta: { title: 'settings.smtp.overview', group: 'settings' },
-    component: () => import('../views/SmtpOverview.vue'),
-  },
-  {
     path: '/settings',
     name: 'settings',
     meta: { title: 'globals.terms.settings', group: 'settings' },

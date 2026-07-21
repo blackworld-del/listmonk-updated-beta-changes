@@ -117,65 +117,24 @@
             </div>
           </div>
           <div class="tile is-parent relative">
-            <b-loading v-if="isSmtpStatsLoading" active :is-full-page="false" />
-            <article class="tile is-child notification">
-              <div class="columns is-mobile">
-                <div class="column is-6">
-                  <p class="title">
-                    <b-icon icon="email-outline" />
-                    {{ $utils.niceNumber(smtpStats.emailsSentToday) }}
-                  </p>
-                  <p class="is-size-6 has-text-grey">
-                    {{ $t('dashboard.emailsSentToday') }}
-                  </p>
-                </div>
-                <div class="column is-6">
-                  <ul class="no has-text-grey">
-                    <li>
-                      <label for="#">{{ smtpStats.totalProfiles }}</label>
-                      {{ $t('dashboard.totalSMTP') }}
-                    </li>
-                    <li>
-                      <label for="#">{{ smtpStats.activeProfiles }}</label>
-                      {{ $t('dashboard.activeSMTP') }}
-                    </li>
-                    <li>
-                      <label for="#" class="has-text-danger">{{ smtpStats.failedToday }}</label>
-                      {{ $t('dashboard.failedToday') }}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <hr />
+            <b-loading v-if="isChartsLoading" active :is-full-page="false" />
+            <article class="tile is-child notification charts">
               <div class="columns">
-                <div class="column is-12">
-                  <router-link :to="{ name: 'smtpOverview' }" class="is-size-7">
-                    <b-icon icon="chart-box-outline" size="is-small" /> {{ $t('settings.smtp.viewOverview') }}
-                  </router-link>
+                <div class="column is-6">
+                  <h3 class="title is-size-6">
+                    {{ $t('dashboard.campaignViews') }}
+                  </h3><br />
+                  <chart type="line" v-if="campaignViews" :data="campaignViews" />
+                </div>
+                <div class="column is-6">
+                  <h3 class="title is-size-6 has-text-right">
+                    {{ $t('dashboard.linkClicks') }}
+                  </h3><br />
+                  <chart type="line" v-if="campaignClicks" :data="campaignClicks" />
                 </div>
               </div>
             </article>
           </div>
-        </div>
-        <div class="tile is-parent relative">
-          <b-loading v-if="isChartsLoading" active :is-full-page="false" />
-          <article class="tile is-child notification charts">
-            <div class="columns">
-              <div class="column is-6">
-                <h3 class="title is-size-6">
-                  {{ $t('dashboard.campaignViews') }}
-                </h3><br />
-                <chart type="line" v-if="campaignViews" :data="campaignViews" />
-              </div>
-              <div class="column is-6">
-                <h3 class="title is-size-6 has-text-right">
-                  {{ $t('dashboard.linkClicks') }}
-                </h3><br />
-                <chart type="line" v-if="campaignClicks" :data="campaignClicks" />
-              </div>
-            </div>
-          </article>
-        </div>
         </div>
       </div><!-- tile block -->
       <p v-if="settings['app.cache_slow_queries']" class="has-text-grey">
@@ -205,16 +164,8 @@ export default Vue.extend({
     return {
       isChartsLoading: true,
       isCountsLoading: true,
-      isSmtpStatsLoading: true,
       campaignViews: null,
       campaignClicks: null,
-      smtpStats: {
-        totalProfiles: 0,
-        activeProfiles: 0,
-        disabledProfiles: 0,
-        emailsSentToday: 0,
-        failedToday: 0,
-      },
       counts: {
         lists: {},
         subscribers: {},
@@ -228,7 +179,6 @@ export default Vue.extend({
     fetchData() {
       this.isCountsLoading = true;
       this.isChartsLoading = true;
-      this.isSmtpStatsLoading = true;
 
       this.$api.getDashboardCounts().then((data) => {
         this.counts = data;
@@ -239,11 +189,6 @@ export default Vue.extend({
         this.isChartsLoading = false;
         this.campaignViews = this.makeChart(data.campaignViews);
         this.campaignClicks = this.makeChart(data.linkClicks);
-      });
-
-      this.$api.getSMTPDashboardStats().then((data) => {
-        this.smtpStats = data;
-        this.isSmtpStatsLoading = false;
       });
     },
 

@@ -14,39 +14,9 @@
       </div>
     </header>
 
-    <div class="columns mb-1">
-      <div class="column is-3">
-        <b-field>
-          <b-input v-model="filter.name" :placeholder="$t('globals.buttons.search')" icon="magnify" @input="onFilter" />
-        </b-field>
-      </div>
-      <div class="column is-2">
-        <b-field>
-          <b-select v-model="filter.status" expanded @input="onFilter">
-            <option value="">{{ $t('globals.fields.allStatus') }}</option>
-            <option value="active">{{ $t('globals.buttons.enabled') }}</option>
-            <option value="disabled">{{ $t('globals.buttons.disabled') }}</option>
-          </b-select>
-        </b-field>
-      </div>
-      <div class="column is-2">
-        <b-field>
-          <b-select v-model="sortBy" expanded @input="loadProfiles">
-            <option value="name">{{ $t('globals.fields.name') }}</option>
-            <option value="sent_today">{{ $t('settings.smtp.sentToday') }}</option>
-            <option value="total_sent">{{ $t('settings.smtp.totalSent') }}</option>
-            <option value="success_rate">{{ $t('settings.smtp.successRate') }}</option>
-            <option value="last_sent_at">{{ $t('settings.smtp.lastUsed') }}</option>
-          </b-select>
-        </b-field>
-      </div>
-    </div>
-
-    <b-table :data="filteredProfiles" :loading="loading" :hoverable="true" striped>
+    <b-table :data="profiles" :loading="loading" :hoverable="true">
       <b-table-column v-slot="props" field="name" :label="$t('globals.fields.name')" :td-attrs="$utils.tdID" sortable>
-        <router-link :to="{ name: 'smtpProfileDetail', params: { id: props.row.id } }">
-          <strong>{{ props.row.name }}</strong>
-        </router-link>
+        <strong>{{ props.row.name }}</strong>
       </b-table-column>
 
       <b-table-column v-slot="props" field="host" label="SMTP Host" sortable>
@@ -57,39 +27,18 @@
         {{ props.row.username }}
       </b-table-column>
 
+      <b-table-column v-slot="props" field="fromEmail" label="From Email" sortable>
+        {{ props.row.fromEmail || '-' }}
+      </b-table-column>
+
+      <b-table-column v-slot="props" field="campaignCount" label="Campaigns" sortable>
+        {{ props.row.campaignCount }}
+      </b-table-column>
+
       <b-table-column v-slot="props" field="enabled" :label="$t('globals.fields.status')" sortable>
         <b-tag :type="props.row.enabled ? 'is-success' : 'is-danger'">
           {{ props.row.enabled ? $t('globals.buttons.enabled') : $t('globals.buttons.disabled') }}
         </b-tag>
-      </b-table-column>
-
-      <b-table-column v-slot="props" field="sentToday" :label="$t('settings.smtp.sentToday')" sortable numeric>
-        {{ $utils.formatNumber(props.row.sentToday || 0) }}
-      </b-table-column>
-
-      <b-table-column v-slot="props" field="totalSent" :label="$t('settings.smtp.totalSent')" sortable numeric>
-        {{ $utils.formatNumber(props.row.totalSent || 0) }}
-      </b-table-column>
-
-      <b-table-column v-slot="props" field="totalFailed" :label="$t('settings.smtp.failedEmails')" sortable numeric>
-        <span :class="{ 'has-text-danger': (props.row.totalFailed || 0) > 0 }">
-          {{ $utils.formatNumber(props.row.totalFailed || 0) }}
-        </span>
-      </b-table-column>
-
-      <b-table-column v-slot="props" field="successRate" :label="$t('settings.smtp.successRate')" sortable numeric>
-        <span :class="{ 'has-text-success': props.row.successRate >= 99, 'has-text-danger': props.row.successRate < 95 }">
-          {{ (props.row.successRate || 0).toFixed(1) }}%
-        </span>
-      </b-table-column>
-
-      <b-table-column v-slot="props" field="campaignCount" :label="$t('settings.smtp.campaignCount')" sortable numeric>
-        {{ props.row.campaignCount || 0 }}
-      </b-table-column>
-
-      <b-table-column v-slot="props" field="lastSentAt" :label="$t('settings.smtp.lastUsed')" sortable>
-        <span v-if="props.row.lastSentAt" class="is-size-7">{{ $utils.niceDate(props.row.lastSentAt, true) }}</span>
-        <span v-else class="has-text-grey-light">-</span>
       </b-table-column>
 
       <b-table-column v-slot="props" cell-class="actions" align="right" :label="$t('globals.fields.actions')">
@@ -112,12 +61,6 @@
             </a>
           </b-tooltip>
 
-          <b-tooltip :label="$t('settings.smtp.viewStats')" type="is-dark" position="is-bottom">
-            <router-link :to="{ name: 'smtpProfileDetail', params: { id: props.row.id } }" class="mr-2">
-              <b-icon icon="chart-box-outline" />
-            </router-link>
-          </b-tooltip>
-
           <b-tooltip v-if="props.row.campaignCount === 0" :label="$t('globals.buttons.delete')" type="is-dark"
             position="is-bottom">
             <a href="#" @click.prevent="$utils.confirm(null, () => deleteProfile(props.row))"
@@ -134,6 +77,7 @@
       </b-table-column>
     </b-table>
 
+    <!-- Create/Edit Modal -->
     <b-modal :active.sync="isModalActive" :width="640" scroll="keep">
       <form @submit.prevent="onSubmit">
         <div class="modal-card">
@@ -141,10 +85,12 @@
             <p class="modal-card-title">{{ isEditing ? $t('globals.buttons.edit') : $t('globals.buttons.new') }}
               {{ $t('settings.smtp.name') }}</p>
           </header>
+
           <section class="modal-card-body">
             <b-field :label="$t('settings.mailserver.profileName')" label-position="on-border" required>
               <b-input v-model="form.name" name="name" :maxlength="200" required />
             </b-field>
+
             <div class="columns">
               <div class="column is-9">
                 <b-field :label="$t('settings.mailserver.host')" label-position="on-border" required>
@@ -158,6 +104,7 @@
                 </b-field>
               </div>
             </div>
+
             <div class="columns">
               <div class="column">
                 <b-field :label="$t('settings.mailserver.username')" label-position="on-border">
@@ -171,6 +118,7 @@
                 </b-field>
               </div>
             </div>
+
             <div class="columns">
               <div class="column is-4">
                 <b-field :label="$t('settings.mailserver.encryption')" label-position="on-border">
@@ -182,10 +130,13 @@
                 </b-field>
               </div>
             </div>
+
             <hr />
+
             <b-field :label="$t('campaigns.fromAddress')" label-position="on-border">
               <b-input v-model="form.fromEmail" name="from_email" placeholder="you@example.com" :maxlength="200" />
             </b-field>
+
             <div class="columns">
               <div class="column">
                 <b-field :label="$t('settings.mailserver.fromName')" label-position="on-border">
@@ -198,20 +149,27 @@
                 </b-field>
               </div>
             </div>
+
             <b-field>
               <b-switch v-model="form.enabled" name="enabled" :native-value="true">
                 {{ $t('globals.buttons.enabled') }}
               </b-switch>
             </b-field>
           </section>
+
           <footer class="modal-card-foot">
-            <b-button @click="isModalActive = false">{{ $t('globals.buttons.cancel') }}</b-button>
-            <b-button native-type="submit" type="is-primary" :loading="saving">{{ $t('globals.buttons.save') }}</b-button>
+            <b-button @click="isModalActive = false">
+              {{ $t('globals.buttons.cancel') }}
+            </b-button>
+            <b-button native-type="submit" type="is-primary" :loading="saving">
+              {{ $t('globals.buttons.save') }}
+            </b-button>
           </footer>
         </div>
       </form>
     </b-modal>
 
+    <!-- Test Connection Modal -->
     <b-modal :active.sync="isTestModalActive" :width="480" scroll="keep">
       <div class="modal-card">
         <header class="modal-card-head">
@@ -221,14 +179,18 @@
           <b-field :message="$t('campaigns.sendTestHelp')">
             <b-input v-model="testEmail" :placeholder="$t('campaigns.testEmails')" type="email" />
           </b-field>
-          <b-button type="is-primary" :loading="testing" @click="sendTest">{{ $t('settings.smtp.sendTest') }}</b-button>
+          <b-button type="is-primary" :loading="testing" @click="sendTest">
+            {{ $t('settings.smtp.sendTest') }}
+          </b-button>
           <div v-if="testResult" class="mt-3" :class="{ 'has-text-danger': testResult.status === 'error', 'has-text-success': testResult.status === 'success' }">
             <b-icon :icon="testResult.status === 'success' ? 'check-circle' : 'alert-circle'" />
             {{ testResult.message }}
           </div>
         </section>
         <footer class="modal-card-foot">
-          <b-button @click="isTestModalActive = false">{{ $t('globals.buttons.close') }}</b-button>
+          <b-button @click="isTestModalActive = false">
+            {{ $t('globals.buttons.close') }}
+          </b-button>
         </footer>
       </div>
     </b-modal>
@@ -237,7 +199,7 @@
 
 <script>
 import Vue from 'vue';
-import { http, getSMTPProfiles, getSMTPProfilesWithStats, createSMTPProfile, updateSMTPProfile, deleteSMTPProfile, duplicateSMTPProfile, testSMTPProfile } from '../api';
+import { http, getSMTPProfiles, createSMTPProfile, updateSMTPProfile, deleteSMTPProfile, duplicateSMTPProfile, testSMTPProfile } from '../api';
 
 export default Vue.extend({
   data() {
@@ -249,48 +211,39 @@ export default Vue.extend({
       isEditing: false,
       editId: null,
       form: this.getEmptyForm(),
+
       isTestModalActive: false,
       testProfileData: null,
       testEmail: '',
       testing: false,
       testResult: null,
-      filter: { name: '', status: '' },
-      sortBy: 'name',
     };
-  },
-
-  computed: {
-    filteredProfiles() {
-      let list = this.profiles;
-      if (this.filter.name) {
-        const q = this.filter.name.toLowerCase();
-        list = list.filter((p) => p.name.toLowerCase().includes(q) || p.host.toLowerCase().includes(q));
-      }
-      if (this.filter.status) {
-        const active = this.filter.status === 'active';
-        list = list.filter((p) => p.enabled === active);
-      }
-      return list;
-    },
   },
 
   methods: {
     getEmptyForm() {
-      return { name: '', host: '', port: 587, username: '', password: '', encryption: 'starttls', fromEmail: '', fromName: '', replyTo: '', enabled: true };
+      return {
+        name: '',
+        host: '',
+        port: 587,
+        username: '',
+        password: '',
+        encryption: 'starttls',
+        fromEmail: '',
+        fromName: '',
+        replyTo: '',
+        enabled: true,
+      };
     },
 
     async loadProfiles() {
       this.loading = true;
       try {
-        const data = await getSMTPProfilesWithStats({ order_by: this.sortBy, order: 'asc' });
+        const data = await getSMTPProfiles();
         this.profiles = data;
       } finally {
         this.loading = false;
       }
-    },
-
-    onFilter() {
-      // computed property handles filtering
     },
 
     showNewForm() {
@@ -337,14 +290,18 @@ export default Vue.extend({
       try {
         await deleteSMTPProfile(profile.id);
         this.loadProfiles();
-      } catch (e) {}
+      } catch (e) {
+        // Error toast is shown by the API interceptor.
+      }
     },
 
     async duplicateProfile(profile) {
       try {
         await duplicateSMTPProfile(profile.id);
         this.loadProfiles();
-      } catch (e) {}
+      } catch (e) {
+        // Error toast is shown by the API interceptor.
+      }
     },
 
     testProfile(profile) {
@@ -358,7 +315,10 @@ export default Vue.extend({
       this.testing = true;
       this.testResult = null;
       try {
-        const payload = { ...this.testProfileData, email: this.testEmail };
+        const payload = {
+          ...this.testProfileData,
+          email: this.testEmail,
+        };
         const data = await testSMTPProfile(payload);
         this.testResult = data;
       } catch (e) {

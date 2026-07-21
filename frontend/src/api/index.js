@@ -395,18 +395,6 @@ export const duplicateSMTPProfile = async (id) => http.post(`/api/smtp-profiles/
 
 export const testSMTPProfile = async (data) => http.post('/api/smtp-profiles/test', data, { camelCase: false });
 
-export const getSMTPProfilesWithStats = async (params) => http.get('/api/smtp-profiles/stats', { params, camelCase: false });
-
-export const getSMTPProfileStats = async (id) => http.get(`/api/smtp-profiles/${id}/stats`, { camelCase: false });
-
-export const getSMTPOverview = async () => http.get('/api/smtp-profiles/stats/overview', { camelCase: false });
-
-export const getSMTPDashboardStats = async () => http.get('/api/smtp-profiles/stats/dashboard', { camelCase: false });
-
-export const exportSMTPStats = async () => http.get('/api/smtp-profiles/stats/export', { camelCase: false, responseType: 'blob' });
-
-export const recordSMTPActivity = async (id, data) => http.post(`/api/smtp-profiles/${id}/activity`, data, { camelCase: false });
-
 // Templates.
 export const createTemplate = async (data) => http.post(
   '/api/templates',
